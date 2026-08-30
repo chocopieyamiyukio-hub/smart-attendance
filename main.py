@@ -846,7 +846,7 @@ class AttendanceApp(ctk.CTk):
                             "Rejected live capture frame due to preprocessing quality."
                         )
         except Exception as error:
-            self.after(0, lambda: self.notify(str(error), "error"))
+            self.after(0, lambda e=str(error): self.notify(e, "error"))
         finally:
             camera.release()
             self.after(0, self._close_capture_preview)
@@ -1360,7 +1360,7 @@ class AttendanceApp(ctk.CTk):
                 ),
             )
         except Exception as error:
-            self.after(0, lambda: self._training_failed(str(error)))
+            self.after(0, lambda e=str(error): self._training_failed(e))
 
     def _training_done(self, message: str) -> None:
         self.training_required = False
@@ -1531,7 +1531,7 @@ class AttendanceApp(ctk.CTk):
                     self.camera_queue.put((image, event))
         except Exception as error:
             LOGGER.exception("Recognition failed")
-            self.after(0, lambda: self.notify(str(error), "error"))
+            self.after(0, lambda e=str(error): self.notify(e, "error"))
         finally:
             camera.release()
 
