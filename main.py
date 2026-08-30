@@ -23,12 +23,21 @@ from ttkbootstrap import Style
 import database
 import recognition
 import reset_database
-from config import (BASE_DIR, CAMERA_INDEX, DATASET_DIR, EXPORTS_DIR,
-                    IMAGE_EXTENSIONS, LABELS_PATH, MODEL_PATH,
-                    configure_logging, ensure_runtime_directories,
-                    get_settings, recognition_settings, save_settings)
-from services.email_service import (build_email, generate_attendance_csv,
-                                    send_email)
+from config import (
+    BASE_DIR,
+    CAMERA_INDEX,
+    DATASET_DIR,
+    EXPORTS_DIR,
+    IMAGE_EXTENSIONS,
+    LABELS_PATH,
+    MODEL_PATH,
+    configure_logging,
+    ensure_runtime_directories,
+    get_settings,
+    recognition_settings,
+    save_settings,
+)
+from services.email_service import build_email, generate_attendance_csv, send_email
 
 LOGGER = logging.getLogger(__name__)
 SAFE_ID = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9]+-[A-Za-z0-9]+$")
@@ -425,15 +434,20 @@ class AttendanceApp(ctk.CTk):
                 "error",
             )
             return
+        import database
+
         if database.student_exists(sid):
-            self.notify("This Student ID is already registered.", "error")
+            self.notify(f"Student ID {sid} is already registered.", "error")
             return
-        database.add_student(sid, name)
-        self.student_id, self.student_name = sid, name
-        self.training_required = True
-        self.trained = False
-        self.registration_next.configure(state="normal")
-        self.notify(f"{name} was registered successfully.")
+        try:
+            database.add_student(sid, name)
+            self.student_id, self.student_name = sid, name
+            self.training_required = True
+            self.trained = False
+            self.registration_next.configure(state="normal")
+            self.notify(f"{name} was registered successfully.")
+        except Exception as e:
+            self.notify(f"Database error: {e}", "error")
 
     def open_student_manager(self) -> None:
         """Open the edit/delete control for registered student data."""
@@ -1501,19 +1515,14 @@ class AttendanceApp(ctk.CTk):
             self.after(30, self._poll_camera)
 
     def refresh_attendance_table(self) -> None:
-        if not hasattr(self, "attendance_rows"):
+        if not hasattr(self, "attendance_tree"):
             return
-        self.attendance_rows.configure(state="normal")
-        self.attendance_rows.delete("1.0", "end")
-        self.attendance_rows.insert(
-            "end",
-            "TIME       SESSION          STUDENT ID          NAME\n" + "─" * 70 + "\n",
-        )
+        for item in self.attendance_tree.get_children():
+            self.attendance_tree.delete(item)
         for scan_time, session, sid, name in self.live_attendance_records:
-            self.attendance_rows.insert(
-                "end", f"{scan_time:<10} {session:<16} {sid:<19} {name}\n"
+            self.attendance_tree.insert(
+                "", "end", values=(scan_time, session, sid, name)
             )
-        self.attendance_rows.configure(state="disabled")
 
     def reports_page(self) -> None:
         self.page_heading(
@@ -1547,6 +1556,47 @@ class AttendanceApp(ctk.CTk):
             ctk.CTkLabel(card, text=label, text_color=COLORS["muted"]).pack(
                 anchor="w", padx=18, pady=(0, 18)
             )
+        # --- Add Attendance Table to Reports ---
+        table_card = self.card(self.content)
+        table_card.pack(fill="both", expand=True, pady=(15, 0))
+
+        ctk.CTkLabel(
+            table_card, text="Today's Attendance Log", font=("Segoe UI", 18, "bold")
+        ).pack(anchor="w", padx=25, pady=(20, 10))
+
+        import tkinter.ttk as ttk
+
+        self.report_tree = ttk.Treeview(
+            table_card, columns=("time", "session", "id", "name"), show="headings"
+        )
+        self.report_tree.heading("time", text="TIME")
+        self.report_tree.heading("session", text="SESSION")
+        self.report_tree.heading("id", text="STUDENT ID")
+        self.report_tree.heading("name", text="NAME")
+
+        self.report_tree.column("time", width=100, anchor="center")
+        self.report_tree.column("session", width=150, anchor="center")
+        self.report_tree.column("id", width=120, anchor="center")
+        self.report_tree.column("name", width=250, anchor="w")
+
+        report_scroll = ctk.CTkScrollbar(table_card, command=self.report_tree.yview)
+        self.report_tree.configure(yscrollcommand=report_scroll.set)
+
+        report_scroll.pack(side="right", fill="y", pady=12, padx=(0, 20))
+        self.report_tree.pack(
+            side="left", fill="both", expand=True, padx=(25, 0), pady=(0, 20)
+        )
+
+        # Populate the table
+        try:
+            records = database.recent_attendance(limit=100)
+            for scan_time, session, sid, name in records:
+                self.report_tree.insert(
+                    "", "end", values=(scan_time, session, sid, name)
+                )
+        except Exception:
+            pass
+
         actions = self.card(self.content)
         actions.pack(fill="x", pady=25)
         ctk.CTkLabel(
