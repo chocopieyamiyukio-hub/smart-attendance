@@ -270,12 +270,16 @@ def train_model() -> tuple[int, int]:
             if img_path.suffix.lower() not in IMAGE_EXTENSIONS: continue
             img = cv2.imread(str(img_path))
             if img is None: continue
-            rects = detect_faces(img, detector)
-            if not rects: continue
-            try:
-                face = prepare_face(img, _largest_face_rectangles(rects))
-            except ValueError:
-                continue
+            
+            if img.shape[:2] == (FACE_SIZE[1], FACE_SIZE[0]):
+                face = img
+            else:
+                rects = detect_faces(img, detector)
+                if not rects: continue
+                try:
+                    face = prepare_face(img, _largest_face_rectangles(rects))
+                except ValueError:
+                    continue
             
             emb = sface.feature(face)
             embeddings.append(emb[0])
