@@ -10,27 +10,29 @@ from config import (DATASET_DIR, EXPORTS_DIR, LABELS_PATH, LOGS_DIR,
 
 
 def reset_all_data() -> None:
-    """Delete all registered students, attendance records, model artifacts, and dataset images."""
+    """Clear all data including the dataset images, models, reports and database rows."""
     ensure_runtime_directories()
+    
+    # Delete all face-image samples
+    if DATASET_DIR.exists():
+        for child in list(DATASET_DIR.iterdir()):
+            try:
+                if child.is_dir():
+                    shutil.rmtree(child)
+                elif child.is_file():
+                    child.unlink()
+            except PermissionError:
+                continue
 
-    database.close_all_connections()
-    database.delete_all_students_and_attendance()
-
+    # Delete trained model data and labels ONLY (keep ONNX models, logs, and exports intact)
     for path in (MODEL_PATH, LABELS_PATH):
         if path.exists():
-            path.unlink()
+            try:
+                path.unlink()
+            except PermissionError:
+                pass
 
-    for directory in (DATASET_DIR, MODELS_DIR, EXPORTS_DIR, LOGS_DIR):
-        if directory.exists():
-            for child in list(directory.iterdir()):
-                try:
-                    if child.is_dir():
-                        shutil.rmtree(child)
-                    elif child.is_file() and child.suffix != ".onnx":
-                        child.unlink()
-                except PermissionError:
-                    continue
-
+    database.delete_all_students_and_attendance()
     database.init_db()
 
 
