@@ -69,6 +69,51 @@ def is_valid_student_id(student_id: str) -> bool:
     return bool(student_id) and bool(SAFE_ID.fullmatch(student_id.strip()))
 
 
+def parse_student_dict(sid: str) -> dict:
+    import re
+    match = re.match(r'^([1-6])([A-Za-z]+)-(\d+)$', sid.strip())
+    if not match:
+        return {'year': '', 'dept': '', 'roll': ''}
+    year, dept, roll = match.groups()
+    y = int(year)
+    year_str = '1st' if y == 1 else '2nd' if y == 2 else '3rd' if y == 3 else f'{y}th'
+    depts = {'CE': 'Computer Engineering', 'ME': 'Mechanical Engineering', 'MECH': 'Mechanical Engineering', 'EE': 'Electrical Engineering', 'EC': 'Electronics and Communication', 'IT': 'Information Technology', 'CS': 'Computer Science', 'CIVIL': 'Civil Engineering', 'ARCH': 'Architecture'}
+    return {'year': year_str, 'dept': depts.get(dept.upper(), dept.upper()), 'roll': roll}
+
+def format_student_info(sid: str) -> str:
+    """Parse and format university Student ID like 5CE-7."""
+    import re
+    match = re.match(r'^([1-6])([A-Za-z]+)-(\d+)$', sid.strip())
+    if not match:
+        return f'Student ID: {sid}'
+    year, dept, roll = match.groups()
+    y = int(year)
+    year_str = '1st' if y == 1 else '2nd' if y == 2 else '3rd' if y == 3 else f'{y}th'
+    depts = {
+        'CE': 'Computer Engineering',
+        'ME': 'Mechanical Engineering',
+        'MECH': 'Mechanical Engineering',
+        'EE': 'Electrical Engineering',
+        'EC': 'Electronics and Communication',
+        'IT': 'Information Technology',
+        'CS': 'Computer Science',
+        'CIVIL': 'Civil Engineering',
+        'ARCH': 'Architecture'
+    }
+    dept_name = depts.get(dept.upper(), dept.upper())
+    return f'Student ID: {sid}\nYear: {year_str} Year\nDepartment: {dept_name}\nRoll No: {roll}'
+
+def parse_student_dict(sid: str) -> dict:
+    import re
+    match = re.match(r'^([1-6])([A-Za-z]+)-(\d+)$', sid.strip())
+    if not match:
+        return {'year': '', 'dept': '', 'roll': ''}
+    year, dept, roll = match.groups()
+    y = int(year)
+    year_str = '1st' if y == 1 else '2nd' if y == 2 else '3rd' if y == 3 else f'{y}th'
+    depts = {'CE': 'Computer Engineering', 'ME': 'Mechanical Engineering', 'MECH': 'Mechanical Engineering', 'EE': 'Electrical Engineering', 'EC': 'Electronics and Communication', 'IT': 'Information Technology', 'CS': 'Computer Science', 'CIVIL': 'Civil Engineering', 'ARCH': 'Architecture'}
+    return {'year': year_str, 'dept': depts.get(dept.upper(), dept.upper()), 'roll': roll}
+
 class AttendanceApp(ctk.CTk):
     """Application shell; widgets delegate persistence and vision to existing modules."""
 
@@ -144,7 +189,7 @@ class AttendanceApp(ctk.CTk):
             self.header, text="", font=("Segoe UI", 12), text_color=COLORS["muted"]
         )
         self.step_label.pack(side="right", padx=32)
-        self.content = ctk.CTkFrame(self, fg_color="transparent")
+        self.content = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.content.grid(row=1, column=1, sticky="nsew", padx=34, pady=25)
         self.status = ctk.CTkLabel(
             self,
@@ -484,12 +529,20 @@ class AttendanceApp(ctk.CTk):
                 name_entry.delete(0, "end")
                 name_entry.insert(0, record[1])
 
-        selector.configure(command=load_selected)
+        info_label = ctk.CTkLabel(dialog, text="", font=("Segoe UI", 12), text_color=COLORS["muted"], justify="left")
+        
+        def load_selected_with_info(_: str | None = None) -> None:
+            load_selected(_)
+            info_label.configure(text=format_student_info(selected_id()))
+            
+        selector.configure(command=load_selected_with_info)
+        info_label.pack(anchor="w", padx=30, pady=(0, 10))
+        
         ctk.CTkLabel(dialog, text="Student ID").pack(anchor="w", padx=30)
         id_entry.pack(fill="x", padx=30, pady=(4, 12))
         ctk.CTkLabel(dialog, text="Student name").pack(anchor="w", padx=30)
         name_entry.pack(fill="x", padx=30, pady=(4, 18))
-        load_selected()
+        load_selected_with_info()
 
         def save_changes() -> None:
             old_id, new_id, new_name = (
@@ -1468,10 +1521,10 @@ class AttendanceApp(ctk.CTk):
                     cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
                     cv2.putText(
                         frame,
-                        f"{name} ({confidence:.0f})",
+                        name,
                         (x, max(25, y - 8)),
                         cv2.FONT_HERSHEY_SIMPLEX,
-                        0.65,
+                        0.85,
                         color,
                         2,
                     )
@@ -1500,8 +1553,9 @@ class AttendanceApp(ctk.CTk):
                 self.result_name.configure(
                     text=name, text_color=COLORS["green"] if sid else COLORS["red"]
                 )
+                info = format_student_info(sid) if sid else "Unknown"
                 self.result_details.configure(
-                    text=f"Student ID: {sid or 'Unknown'}\nTime: {now}\nConfidence: {confidence:.1f}"
+                    text=f"{info}\nTime: {now}\nConfidence: {confidence:.1f}"
                 )
                 if added:
                     self.live_attendance_records.insert(
@@ -1567,17 +1621,23 @@ class AttendanceApp(ctk.CTk):
         import tkinter.ttk as ttk
 
         self.report_tree = ttk.Treeview(
-            table_card, columns=("time", "session", "id", "name"), show="headings"
+            table_card, columns=("time", "session", "id", "name", "year", "dept", "roll"), show="headings"
         )
         self.report_tree.heading("time", text="TIME")
         self.report_tree.heading("session", text="SESSION")
-        self.report_tree.heading("id", text="STUDENT ID")
+        self.report_tree.heading("id", text="ID")
         self.report_tree.heading("name", text="NAME")
+        self.report_tree.heading("year", text="YEAR")
+        self.report_tree.heading("dept", text="DEPARTMENT")
+        self.report_tree.heading("roll", text="ROLL")
 
-        self.report_tree.column("time", width=100, anchor="center")
-        self.report_tree.column("session", width=150, anchor="center")
-        self.report_tree.column("id", width=120, anchor="center")
-        self.report_tree.column("name", width=250, anchor="w")
+        self.report_tree.column("time", width=80, anchor="center")
+        self.report_tree.column("session", width=120, anchor="center")
+        self.report_tree.column("id", width=80, anchor="center")
+        self.report_tree.column("name", width=160, anchor="w")
+        self.report_tree.column("year", width=70, anchor="center")
+        self.report_tree.column("dept", width=160, anchor="center")
+        self.report_tree.column("roll", width=50, anchor="center")
 
         report_scroll = ctk.CTkScrollbar(table_card, command=self.report_tree.yview)
         self.report_tree.configure(yscrollcommand=report_scroll.set)
