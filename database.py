@@ -181,13 +181,6 @@ def delete_all_students_and_attendance() -> None:
         conn.execute("DELETE FROM Students")
 
 
-def delete_today_attendance() -> None:
-    with _managed_connection() as conn:
-        conn.execute(
-            "DELETE FROM Attendance WHERE date = ?",
-            (datetime.now().strftime("%Y-%m-%d"),),
-        )
-
 def student_exists(student_id: str) -> bool:
     with _managed_connection() as conn:
         return (

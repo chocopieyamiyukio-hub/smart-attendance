@@ -1604,53 +1604,6 @@ class AttendanceApp(ctk.CTk):
             ctk.CTkLabel(card, text=label, text_color=COLORS["muted"]).pack(
                 anchor="w", padx=18, pady=(0, 18)
             )
-        # --- Add Attendance Table to Reports ---
-        table_card = self.card(self.page_frame)
-        table_card.pack(fill="both", expand=True, pady=(15, 0))
-
-        ctk.CTkLabel(
-            table_card, text="Today's Attendance Log", font=("Segoe UI", 18, "bold")
-        ).pack(anchor="w", padx=25, pady=(20, 10))
-
-        import tkinter.ttk as ttk
-
-        self.report_tree = ttk.Treeview(
-            table_card, columns=("time", "session", "id", "name", "year", "dept", "roll"), show="headings"
-        )
-        self.report_tree.heading("time", text="TIME")
-        self.report_tree.heading("session", text="SESSION")
-        self.report_tree.heading("id", text="ID")
-        self.report_tree.heading("name", text="NAME")
-        self.report_tree.heading("year", text="YEAR")
-        self.report_tree.heading("dept", text="DEPARTMENT")
-        self.report_tree.heading("roll", text="ROLL")
-
-        self.report_tree.column("time", width=80, anchor="center")
-        self.report_tree.column("session", width=120, anchor="center")
-        self.report_tree.column("id", width=80, anchor="center")
-        self.report_tree.column("name", width=160, anchor="w")
-        self.report_tree.column("year", width=70, anchor="center")
-        self.report_tree.column("dept", width=160, anchor="center")
-        self.report_tree.column("roll", width=50, anchor="center")
-
-        report_scroll = ctk.CTkScrollbar(table_card, command=self.report_tree.yview)
-        self.report_tree.configure(yscrollcommand=report_scroll.set)
-
-        report_scroll.pack(side="right", fill="y", pady=12, padx=(0, 20))
-        self.report_tree.pack(
-            side="left", fill="both", expand=True, padx=(25, 0), pady=(0, 20)
-        )
-
-        # Populate the table
-        try:
-            records = database.recent_attendance(limit=100)
-            for scan_time, session, sid, name in records:
-                self.report_tree.insert(
-                    "", "end", values=(scan_time, session, sid, name)
-                )
-        except Exception:
-            pass
-
         actions = self.card(self.page_frame)
         actions.pack(fill="x", pady=25)
         ctk.CTkLabel(
@@ -1670,23 +1623,6 @@ class AttendanceApp(ctk.CTk):
                 command=command,
             ).pack(side="left", padx=(25, 0), pady=(0, 25))
 
-        clear_card = self.card(self.page_frame)
-        clear_card.pack(fill="x", pady=(0, 12))
-        ctk.CTkLabel(
-            clear_card,
-            text="Clear today's live attendance records (does not affect registered students).",
-            text_color=COLORS["muted"],
-        ).pack(anchor="w", padx=25, pady=(10, 14))
-        ctk.CTkButton(
-            clear_card,
-            text="🧹 Clear Today's Logs",
-            width=280,
-            height=42,
-            fg_color=COLORS["orange"],
-            hover_color="#D97706",
-            command=self.clear_today_logs,
-        ).pack(anchor="w", padx=25, pady=(0, 22))
-
         reset_card = self.card(self.page_frame)
         reset_card.pack(fill="x", pady=(0, 12))
         ctk.CTkLabel(
@@ -1702,19 +1638,6 @@ class AttendanceApp(ctk.CTk):
             fg_color=COLORS["red"],
             command=self.reset_all_data,
         ).pack(anchor="w", padx=25, pady=(0, 22))
-
-    def clear_today_logs(self) -> None:
-        if not messagebox.askyesno(
-            "Clear Today's Logs",
-            "This will delete all attendance records for today. Continue?",
-        ):
-            return
-        try:
-            database.delete_today_attendance()
-            self.notify("Today's attendance logs have been cleared.")
-            self.show_page(4)
-        except Exception as error:
-            self.notify(f"Could not clear logs: {error}", "error")
 
     def reset_all_data(self) -> None:
         if not messagebox.askyesno(
