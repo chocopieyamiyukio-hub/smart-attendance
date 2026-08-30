@@ -198,7 +198,16 @@ def add_face_samples_for_student(
         if not image_path.exists() or image_path.suffix.lower() not in IMAGE_EXTENSIONS:
             stats["ignored_images"] += 1
             continue
-        image = cv2.imread(str(image_path))
+        # Read with PIL to handle mobile EXIF rotation correctly
+        try:
+            from PIL import Image, ImageOps
+            import numpy as np
+            pil_img = Image.open(str(image_path)).convert("RGB")
+            pil_img = ImageOps.exif_transpose(pil_img)
+            image = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+        except Exception:
+            image = cv2.imread(str(image_path))
+            
         if image is None:
             stats["ignored_images"] += 1
             continue
@@ -209,7 +218,13 @@ def add_face_samples_for_student(
         if max(height, width) > max_dim:
             scale = max_dim / max(height, width)
             small_image = cv2.resize(image, (int(width * scale), int(height * scale)))
+            
+            # Temporarily lower threshold for downscaled detection
+            original_threshold = detector.getScoreThreshold()
+            detector.setScoreThreshold(0.6)
             small_rects = detect_faces(small_image, detector)
+            detector.setScoreThreshold(original_threshold)
+            
             rectangles = []
             for (x, y, w, h) in small_rects:
                 rectangles.append((int(x / scale), int(y / scale), int(w / scale), int(h / scale)))
