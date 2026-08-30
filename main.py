@@ -270,12 +270,7 @@ class AttendanceApp(ctk.CTk):
         )
 
     def page_heading(self, parent, heading: str, text: str = "") -> None:
-        ctk.CTkLabel(
-            parent,
-            text=heading,
-            font=("Segoe UI", 28, "bold"),
-            text_color=COLORS["text"],
-        ).pack(anchor="w", pady=(0, 5))
+        # Title is already in the global header, so we only display the subtitle text here.
         if text:
             ctk.CTkLabel(
                 parent, text=text, font=("Segoe UI", 13), text_color=COLORS["muted"]
@@ -625,13 +620,7 @@ class AttendanceApp(ctk.CTk):
         )
 
     def capture_page(self) -> None:
-        scroll = ctk.CTkScrollableFrame(
-            self.page_frame,
-            fg_color="transparent",
-            scrollbar_button_color="#B8C7D9",
-            scrollbar_button_hover_color=COLORS["blue"],
-        )
-        scroll.pack(fill="both", expand=True)
+        scroll = self.page_frame
         self.page_heading(
             scroll,
             "Capture Face Dataset",
@@ -1386,13 +1375,7 @@ class AttendanceApp(ctk.CTk):
 
     def attendance_page(self) -> None:
         self.live_attendance_records = []
-        scroll = ctk.CTkScrollableFrame(
-            self.page_frame,
-            fg_color="transparent",
-            scrollbar_button_color="#B8C7D9",
-            scrollbar_button_hover_color=COLORS["blue"],
-        )
-        scroll.pack(fill="both", expand=True)
+        scroll = self.page_frame
         self.page_heading(
             scroll,
             "Live Attendance",
