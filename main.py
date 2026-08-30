@@ -77,7 +77,7 @@ def parse_student_dict(sid: str) -> dict:
     year, dept, roll = match.groups()
     y = int(year)
     year_str = '1st' if y == 1 else '2nd' if y == 2 else '3rd' if y == 3 else f'{y}th'
-    depts = {'CE': 'Computer Engineering', 'ME': 'Mechanical Engineering', 'MECH': 'Mechanical Engineering', 'EE': 'Electrical Engineering', 'EC': 'Electronics and Communication', 'IT': 'Information Technology', 'CS': 'Computer Science', 'CIVIL': 'Civil Engineering', 'ARCH': 'Architecture'}
+    depts = {'CE': 'Computer Engineering', 'ME': 'Mechanical Engineering', 'MECH': 'Mechanical Engineering', 'EE': 'Electrical Engineering', 'EC': 'Electronics and Communication', 'IT': 'Information Technology', 'CS': 'Computer Science', 'CIVIL': 'Civil Engineering', 'ARCH': 'Architecture', 'IST': 'Information Science and Technology', 'ECE': 'Electronic Engineering', 'PRE': 'Precision Engineering', 'AME': 'Advanced Materials Engineering'}
     return {'year': year_str, 'dept': depts.get(dept.upper(), dept.upper()), 'roll': roll}
 
 def format_student_info(sid: str) -> str:
@@ -98,7 +98,11 @@ def format_student_info(sid: str) -> str:
         'IT': 'Information Technology',
         'CS': 'Computer Science',
         'CIVIL': 'Civil Engineering',
-        'ARCH': 'Architecture'
+        'ARCH': 'Architecture',
+        'IST': 'Information Science and Technology',
+        'ECE': 'Electronic Engineering',
+        'PRE': 'Precision Engineering',
+        'AME': 'Advanced Materials Engineering'
     }
     dept_name = depts.get(dept.upper(), dept.upper())
     return f'Student ID: {sid}\nYear: {year_str} Year\nDepartment: {dept_name}\nRoll No: {roll}'
@@ -111,7 +115,7 @@ def parse_student_dict(sid: str) -> dict:
     year, dept, roll = match.groups()
     y = int(year)
     year_str = '1st' if y == 1 else '2nd' if y == 2 else '3rd' if y == 3 else f'{y}th'
-    depts = {'CE': 'Computer Engineering', 'ME': 'Mechanical Engineering', 'MECH': 'Mechanical Engineering', 'EE': 'Electrical Engineering', 'EC': 'Electronics and Communication', 'IT': 'Information Technology', 'CS': 'Computer Science', 'CIVIL': 'Civil Engineering', 'ARCH': 'Architecture'}
+    depts = {'CE': 'Computer Engineering', 'ME': 'Mechanical Engineering', 'MECH': 'Mechanical Engineering', 'EE': 'Electrical Engineering', 'EC': 'Electronics and Communication', 'IT': 'Information Technology', 'CS': 'Computer Science', 'CIVIL': 'Civil Engineering', 'ARCH': 'Architecture', 'IST': 'Information Science and Technology', 'ECE': 'Electronic Engineering', 'PRE': 'Precision Engineering', 'AME': 'Advanced Materials Engineering'}
     return {'year': year_str, 'dept': depts.get(dept.upper(), dept.upper()), 'roll': roll}
 
 class AttendanceApp(ctk.CTk):
