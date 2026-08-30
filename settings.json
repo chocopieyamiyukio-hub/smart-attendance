@@ -1,7 +1,10 @@
 {
-  "teacher_email": "tharngae632003@gmail.com",
+  "teacher_email": "chocopie.yamiyukio@gmail.com",
   "teacher_emails": [
-    "tharngae632003@gmail.com",
-    "chocopie.yamiyukio@gmail.com"
-  ]
+    "chocopie.yamiyukio@gmail.com",
+    "tharngae632003@gmail.com"
+  ],
+  "smtp_host": "smtp.gmail.com",
+  "smtp_port": 587,
+  "sender_email": "tharngae632003@gmail.com"
 }

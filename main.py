@@ -1670,6 +1670,23 @@ class AttendanceApp(ctk.CTk):
                 command=command,
             ).pack(side="left", padx=(25, 0), pady=(0, 25))
 
+        clear_card = self.card(self.page_frame)
+        clear_card.pack(fill="x", pady=(0, 12))
+        ctk.CTkLabel(
+            clear_card,
+            text="Clear today's live attendance records (does not affect registered students).",
+            text_color=COLORS["muted"],
+        ).pack(anchor="w", padx=25, pady=(10, 14))
+        ctk.CTkButton(
+            clear_card,
+            text="🧹 Clear Today's Logs",
+            width=280,
+            height=42,
+            fg_color=COLORS["orange"],
+            hover_color="#D97706",
+            command=self.clear_today_logs,
+        ).pack(anchor="w", padx=25, pady=(0, 22))
+
         reset_card = self.card(self.page_frame)
         reset_card.pack(fill="x", pady=(0, 12))
         ctk.CTkLabel(
@@ -1679,12 +1696,25 @@ class AttendanceApp(ctk.CTk):
         ).pack(anchor="w", padx=25, pady=(10, 14))
         ctk.CTkButton(
             reset_card,
-            text="🗑️  Delete All Registered Data",
+            text="🗑️ Delete All Registered Data",
             width=280,
             height=42,
             fg_color=COLORS["red"],
             command=self.reset_all_data,
         ).pack(anchor="w", padx=25, pady=(0, 22))
+
+    def clear_today_logs(self) -> None:
+        if not messagebox.askyesno(
+            "Clear Today's Logs",
+            "This will delete all attendance records for today. Continue?",
+        ):
+            return
+        try:
+            database.delete_today_attendance()
+            self.notify("Today's attendance logs have been cleared.")
+            self.show_page(4)
+        except Exception as error:
+            self.notify(f"Could not clear logs: {error}", "error")
 
     def reset_all_data(self) -> None:
         if not messagebox.askyesno(
