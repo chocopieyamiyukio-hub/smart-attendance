@@ -189,7 +189,7 @@ class AttendanceApp(ctk.CTk):
             self.header, text="", font=("Segoe UI", 12), text_color=COLORS["muted"]
         )
         self.step_label.pack(side="right", padx=32)
-        self.content = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self.content = ctk.CTkFrame(self, fg_color="transparent")
         self.content.grid(row=1, column=1, sticky="nsew", padx=34, pady=25)
         self.status = ctk.CTkLabel(
             self,
@@ -226,6 +226,13 @@ class AttendanceApp(ctk.CTk):
             )
         self.page_title.configure(text=PAGES[page][1])
         self.step_label.configure(text=f"STEP {page + 1} OF 5")
+        
+        if page != 0:
+            self.page_frame = ctk.CTkScrollableFrame(self.content, fg_color="transparent")
+            self.page_frame.pack(fill="both", expand=True)
+        else:
+            self.page_frame = self.content
+
         builders = [
             self.welcome_page,
             self.registration_page,
@@ -422,11 +429,11 @@ class AttendanceApp(ctk.CTk):
 
     def registration_page(self) -> None:
         self.page_heading(
-            self.content,
+            self.page_frame,
             "New Student Registration",
             "Create the student profile before adding face data.",
         )
-        tip = ctk.CTkFrame(self.content, corner_radius=14, fg_color=COLORS["soft_blue"])
+        tip = ctk.CTkFrame(self.page_frame, corner_radius=14, fg_color=COLORS["soft_blue"])
         tip.pack(fill="x", pady=(0, 16))
         ctk.CTkLabel(
             tip,
@@ -434,7 +441,7 @@ class AttendanceApp(ctk.CTk):
             font=("Segoe UI", 13),
             text_color=COLORS["text"],
         ).pack(anchor="w", padx=18, pady=15)
-        card = self.card(self.content, width=600)
+        card = self.card(self.page_frame, width=600)
         card.pack(anchor="w", padx=8, pady=8, fill="x")
         ctk.CTkLabel(
             card,
@@ -459,12 +466,12 @@ class AttendanceApp(ctk.CTk):
         ).pack(fill="x", padx=30, pady=(18, 8))
         self.registration_next.pack(fill="x", padx=30, pady=(0, 25))
         ctk.CTkButton(
-            self.content,
+            self.page_frame,
             text="Manage Registered Students",
             command=self.open_student_manager,
         ).pack(anchor="w", padx=8, pady=(10, 4))
         ctk.CTkButton(
-            self.content,
+            self.page_frame,
             text="← Back",
             fg_color="transparent",
             text_color=COLORS["muted"],
@@ -619,7 +626,7 @@ class AttendanceApp(ctk.CTk):
 
     def capture_page(self) -> None:
         scroll = ctk.CTkScrollableFrame(
-            self.content,
+            self.page_frame,
             fg_color="transparent",
             scrollbar_button_color="#B8C7D9",
             scrollbar_button_hover_color=COLORS["blue"],
@@ -1380,7 +1387,7 @@ class AttendanceApp(ctk.CTk):
     def attendance_page(self) -> None:
         self.live_attendance_records = []
         scroll = ctk.CTkScrollableFrame(
-            self.content,
+            self.page_frame,
             fg_color="transparent",
             scrollbar_button_color="#B8C7D9",
             scrollbar_button_hover_color=COLORS["blue"],
@@ -1580,7 +1587,7 @@ class AttendanceApp(ctk.CTk):
 
     def reports_page(self) -> None:
         self.page_heading(
-            self.content,
+            self.page_frame,
             "Reports & Export",
             "Review system activity and share attendance records.",
         )
@@ -1588,7 +1595,7 @@ class AttendanceApp(ctk.CTk):
         metrics["accuracy"] = (
             "Available" if recognition.model_available() else "Not trained"
         )
-        row = ctk.CTkFrame(self.content, fg_color="transparent")
+        row = ctk.CTkFrame(self.page_frame, fg_color="transparent")
         row.pack(fill="x")
         for label, value, icon in [
             ("Registered Students", metrics["students"], "👤"),
@@ -1611,7 +1618,7 @@ class AttendanceApp(ctk.CTk):
                 anchor="w", padx=18, pady=(0, 18)
             )
         # --- Add Attendance Table to Reports ---
-        table_card = self.card(self.content)
+        table_card = self.card(self.page_frame)
         table_card.pack(fill="both", expand=True, pady=(15, 0))
 
         ctk.CTkLabel(
@@ -1657,7 +1664,7 @@ class AttendanceApp(ctk.CTk):
         except Exception:
             pass
 
-        actions = self.card(self.content)
+        actions = self.card(self.page_frame)
         actions.pack(fill="x", pady=25)
         ctk.CTkLabel(
             actions, text="Export & delivery", font=("Segoe UI", 18, "bold")
@@ -1676,7 +1683,7 @@ class AttendanceApp(ctk.CTk):
                 command=command,
             ).pack(side="left", padx=(25, 0), pady=(0, 25))
 
-        reset_card = self.card(self.content)
+        reset_card = self.card(self.page_frame)
         reset_card.pack(fill="x", pady=(0, 12))
         ctk.CTkLabel(
             reset_card,
