@@ -197,7 +197,7 @@ class AttendanceApp(ctk.CTk):
             self.nav_page_indices.append(index)
         ctk.CTkLabel(
             self.sidebar,
-            text="Biometric Engine v2.0\nComputer Vision Core",
+            text="Fifth Year Project\nComputer Engineering",
             justify="left",
             text_color="#B8CAE0",
             font=("Segoe UI", 11),
@@ -394,7 +394,7 @@ class AttendanceApp(ctk.CTk):
 
         ctk.CTkLabel(
             box,
-            text="Facial Recognition\nSmart Tracking Matrix",
+            text="Face Recognition\nSmart Attendance System",
             justify="center",
             font=("Segoe UI", 31, "bold"),
             text_color=COLORS["navy"],
@@ -402,21 +402,21 @@ class AttendanceApp(ctk.CTk):
 
         ctk.CTkLabel(
             box,
-            text="Advanced Computer Vision",
+            text="Computer Engineering Fifth Year Project",
             font=("Segoe UI", 14, "bold"),
             text_color=COLORS["blue"],
         ).pack()
 
         ctk.CTkLabel(
             box,
-            text="Biometric identity management and AI-powered spatial attendance system.",
+            text="A secure, intelligent way to register students and manage attendance.",
             font=("Segoe UI", 13),
             text_color=COLORS["muted"],
         ).pack(padx=50, pady=(15, 30))
 
         ctk.CTkButton(
             box,
-            text="Initialize System ➔",
+            text="Start  →",
             width=220,
             height=46,
             font=("Segoe UI", 15, "bold"),
@@ -465,7 +465,7 @@ class AttendanceApp(ctk.CTk):
         tip.pack(fill="x", pady=(0, 16))
         ctk.CTkLabel(
             tip,
-            text="Initialize System ➔",
+            text="Start with the student’s ID and full name. Face samples are added in the next step.",
             font=("Segoe UI", 13),
             text_color=COLORS["text"],
         ).pack(anchor="w", padx=18, pady=15)
@@ -701,7 +701,7 @@ class AttendanceApp(ctk.CTk):
             text_color=COLORS["muted"],
         ).pack(anchor="w", padx=24, pady=10)
         ctk.CTkButton(
-            card, text="Initialize System ➔", command=self.capture_camera
+            card, text="Start Camera Capture", command=self.capture_camera
         ).pack(anchor="w", padx=24, pady=(8, 25))
 
         update_card = self.card(row)
@@ -1052,7 +1052,7 @@ class AttendanceApp(ctk.CTk):
             side="left", padx=(0, 10)
         )
         ctk.CTkButton(
-            button_row, text="Initialize System ➔", command=apply_camera
+            button_row, text="Start Webcam Capture", command=apply_camera
         ).pack(side="left")
 
         self.update_face_status = ctk.CTkLabel(
@@ -1417,7 +1417,7 @@ class AttendanceApp(ctk.CTk):
         left.pack(side="left", fill="both", expand=True, padx=(0, 12))
         self.video_label = ctk.CTkLabel(
             left,
-            text="Initializing Vision System...",
+            text="Camera preview will appear here",
             width=600,
             height=380,
             font=("Segoe UI", 16),
@@ -1452,7 +1452,7 @@ class AttendanceApp(ctk.CTk):
             width=28,
         )
         self.result_details.pack(anchor="w", padx=25, pady=14, fill="x")
-        ctk.CTkButton(right, text="Initialize System ➔", command=self.start_camera).pack(
+        ctk.CTkButton(right, text="Start Camera", command=self.start_camera).pack(
             fill="x", padx=25, pady=(15, 8)
         )
         ctk.CTkButton(
