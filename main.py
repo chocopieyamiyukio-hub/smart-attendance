@@ -395,7 +395,7 @@ Computer Vision Core",
 
         ctk.CTkLabel(
             box,
-            text="Facial Recognition\nSmart Tracking Matrix",
+            text="Facial Recognition\\nSmart Tracking Matrix",
             justify="center",
             font=("Segoe UI", 31, "bold"),
             text_color=COLORS["navy"],
