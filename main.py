@@ -1410,7 +1410,7 @@ class AttendanceApp(ctk.CTk):
 
     def _recognition_worker(self) -> None:
         settings = recognition_settings()
-        recognizer = recognition._load_recognizer()
+        recognizer = recognition._load_sface()
         label_mapping = recognition._load_label_mapping()
         detector = recognition._detector()
         camera = cv2.VideoCapture(CAMERA_INDEX)
