@@ -71,7 +71,7 @@ def _load_label_mapping() -> dict[int, str]:
     mapping = json.loads(LABELS_PATH.read_text(encoding="utf-8"))
     if not isinstance(mapping, dict):
         raise ValueError("Label mapping is malformed.")
-    return {int(value): key for key, value in mapping.items()}
+    return {int(k): str(v) for k, v in mapping.items()}
 
 
 @lru_cache(maxsize=1)
