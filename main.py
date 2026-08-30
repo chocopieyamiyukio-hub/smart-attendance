@@ -21,6 +21,23 @@ from PIL import Image, ImageOps
 from ttkbootstrap import Style
 
 import database
+
+def draw_hud_box(frame, x, y, w, h, color, thickness=3, length=25):
+    """Draw a futuristic HUD-style bounding box around detected faces."""
+    # Top left
+    cv2.line(frame, (x, y), (x + length, y), color, thickness)
+    cv2.line(frame, (x, y), (x, y + length), color, thickness)
+    # Top right
+    cv2.line(frame, (x + w, y), (x + w - length, y), color, thickness)
+    cv2.line(frame, (x + w, y), (x + w, y + length), color, thickness)
+    # Bottom left
+    cv2.line(frame, (x, y + h), (x + length, y + h), color, thickness)
+    cv2.line(frame, (x, y + h), (x, y + h - length), color, thickness)
+    # Bottom right
+    cv2.line(frame, (x + w, y + h), (x + w - length, y + h), color, thickness)
+    cv2.line(frame, (x + w, y + h), (x + w, y + h - length), color, thickness)
+
+
 import recognition
 import reset_database
 from config import (
@@ -143,6 +160,12 @@ class AttendanceApp(ctk.CTk):
         self._build_shell()
         self.show_page(0)
 
+    def _tick_clock(self):
+        import time
+        now = time.strftime("%I:%M:%S %p | %b %d, %Y")
+        self.clock_label.configure(text=now)
+        self.after(1000, self._tick_clock)
+
     def _build_shell(self) -> None:
         # A wider navigation rail keeps labels comfortably readable in demos.
         self.sidebar = ctk.CTkFrame(
@@ -174,7 +197,8 @@ class AttendanceApp(ctk.CTk):
             self.nav_page_indices.append(index)
         ctk.CTkLabel(
             self.sidebar,
-            text="Fifth Year Project\nComputer Engineering",
+            text="Biometric Engine v2.0
+Computer Vision Core",
             justify="left",
             text_color="#B8CAE0",
             font=("Segoe UI", 11),
@@ -193,6 +217,12 @@ class AttendanceApp(ctk.CTk):
             self.header, text="", font=("Segoe UI", 12), text_color=COLORS["muted"]
         )
         self.step_label.pack(side="right", padx=32)
+        
+        self.clock_label = ctk.CTkLabel(
+            self.header, text="", font=("Segoe UI", 14, "bold"), text_color=COLORS["blue"]
+        )
+        self.clock_label.pack(side="right", padx=(0, 15))
+        self._tick_clock()
         self.content = ctk.CTkFrame(self, fg_color="transparent")
         self.content.grid(row=1, column=1, sticky="nsew", padx=34, pady=25)
         self.status = ctk.CTkLabel(
@@ -365,7 +395,7 @@ class AttendanceApp(ctk.CTk):
 
         ctk.CTkLabel(
             box,
-            text="Face Recognition\nSmart Attendance System",
+            text="Facial Recognition\nSmart Tracking Matrix",
             justify="center",
             font=("Segoe UI", 31, "bold"),
             text_color=COLORS["navy"],
@@ -373,21 +403,21 @@ class AttendanceApp(ctk.CTk):
 
         ctk.CTkLabel(
             box,
-            text="Computer Engineering Fifth Year Project",
+            text="Advanced Computer Vision",
             font=("Segoe UI", 14, "bold"),
             text_color=COLORS["blue"],
         ).pack()
 
         ctk.CTkLabel(
             box,
-            text="A secure, intelligent way to register students and manage attendance.",
+            text="Biometric identity management and AI-powered spatial attendance system.",
             font=("Segoe UI", 13),
             text_color=COLORS["muted"],
         ).pack(padx=50, pady=(15, 30))
 
         ctk.CTkButton(
             box,
-            text="Start  →",
+            text="Initialize System ➔",
             width=220,
             height=46,
             font=("Segoe UI", 15, "bold"),
@@ -436,7 +466,7 @@ class AttendanceApp(ctk.CTk):
         tip.pack(fill="x", pady=(0, 16))
         ctk.CTkLabel(
             tip,
-            text="Start with the student’s ID and full name. Face samples are added in the next step.",
+            text="Initialize System ➔",
             font=("Segoe UI", 13),
             text_color=COLORS["text"],
         ).pack(anchor="w", padx=18, pady=15)
@@ -672,7 +702,7 @@ class AttendanceApp(ctk.CTk):
             text_color=COLORS["muted"],
         ).pack(anchor="w", padx=24, pady=10)
         ctk.CTkButton(
-            card, text="Start Camera Capture", command=self.capture_camera
+            card, text="Initialize System ➔", command=self.capture_camera
         ).pack(anchor="w", padx=24, pady=(8, 25))
 
         update_card = self.card(row)
@@ -811,9 +841,7 @@ class AttendanceApp(ctk.CTk):
                 faces = recognition.detect_faces(frame, detector)
                 preview = frame.copy()
                 for x, y, width, height in faces:
-                    cv2.rectangle(
-                        preview, (x, y), (x + width, y + height), (0, 180, 0), 2
-                    )
+                    draw_hud_box(preview, x, y, width, height, (0, 200, 0))
                 cv2.putText(
                     preview,
                     f"Capturing {count}/{target}",
@@ -1025,7 +1053,7 @@ class AttendanceApp(ctk.CTk):
             side="left", padx=(0, 10)
         )
         ctk.CTkButton(
-            button_row, text="Start Webcam Capture", command=apply_camera
+            button_row, text="Initialize System ➔", command=apply_camera
         ).pack(side="left")
 
         self.update_face_status = ctk.CTkLabel(
@@ -1118,9 +1146,7 @@ class AttendanceApp(ctk.CTk):
                 faces = recognition.detect_faces(frame, detector)
                 preview = frame.copy()
                 for x, y, width, height in faces:
-                    cv2.rectangle(
-                        preview, (x, y), (x + width, y + height), (0, 180, 0), 2
-                    )
+                    draw_hud_box(preview, x, y, width, height, (0, 200, 0))
                 cv2.putText(
                     preview,
                     f"Updating face data {stats['new_images_added']}/{target_count}",
@@ -1392,7 +1418,7 @@ class AttendanceApp(ctk.CTk):
         left.pack(side="left", fill="both", expand=True, padx=(0, 12))
         self.video_label = ctk.CTkLabel(
             left,
-            text="Camera preview will appear here",
+            text="Initializing Vision System...",
             width=600,
             height=380,
             font=("Segoe UI", 16),
@@ -1427,7 +1453,7 @@ class AttendanceApp(ctk.CTk):
             width=28,
         )
         self.result_details.pack(anchor="w", padx=25, pady=14, fill="x")
-        ctk.CTkButton(right, text="Start Camera", command=self.start_camera).pack(
+        ctk.CTkButton(right, text="Initialize System ➔", command=self.start_camera).pack(
             fill="x", padx=25, pady=(15, 8)
         )
         ctk.CTkButton(
@@ -1512,7 +1538,7 @@ class AttendanceApp(ctk.CTk):
                     student_record = database.get_student(sid) if sid else None
                     name = student_record[1] if student_record else "Unknown"
                     color = (0, 180, 0) if sid else (0, 0, 220)
-                    cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
+                    draw_hud_box(frame, x, y, w, h, color)
                     cv2.putText(
                         frame,
                         name,
