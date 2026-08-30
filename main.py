@@ -197,8 +197,7 @@ class AttendanceApp(ctk.CTk):
             self.nav_page_indices.append(index)
         ctk.CTkLabel(
             self.sidebar,
-            text="Biometric Engine v2.0
-Computer Vision Core",
+            text="Biometric Engine v2.0\nComputer Vision Core",
             justify="left",
             text_color="#B8CAE0",
             font=("Segoe UI", 11),
