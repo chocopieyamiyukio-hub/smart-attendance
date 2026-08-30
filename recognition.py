@@ -17,46 +17,34 @@ import numpy as np
 import database
 from config import (CAMERA_INDEX, DATASET_DIR, FACE_DETECTION_MIN_NEIGHBORS,
                     FACE_DETECTION_MIN_SIZE, FACE_DETECTION_SCALE_FACTOR,
-                    FACE_SIZE, IMAGE_EXTENSIONS, LABELS_PATH, LBPH_GRID_X,
-                    LBPH_GRID_Y, LBPH_NEIGHBORS, LBPH_RADIUS,
-                    MIN_FACE_SHARPNESS, MODEL_PATH, RECOGNITION_LOG_PATH,
+                    FACE_SIZE, IMAGE_EXTENSIONS, LABELS_PATH, 
+                    MIN_FACE_SHARPNESS, MODEL_PATH, RECOGNITION_LOG_PATH, YUNET_PATH, SFACE_PATH,
                     ensure_runtime_directories, recognition_settings)
 
 LOGGER = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=1)
-def _detector() -> cv2.CascadeClassifier:
-    """Load OpenCV's bundled detector using conservative false-positive settings.
-
-    Haar remains the compatible fallback for offline installations. The
-    preprocessing below (equalisation, size checks and blur rejection) makes
-    it materially more reliable while keeping existing OpenCV deployments.
-    """
-    path = Path(cv2.data.haarcascades) / "haarcascade_frontalface_default.xml"
-    detector = cv2.CascadeClassifier(str(path))
-    if detector.empty():
-        raise RuntimeError("OpenCV's Haar cascade classifier could not be loaded.")
-    return detector
+def _detector():
+    if not YUNET_PATH.exists():
+        raise FileNotFoundError("YuNet model not found.")
+    return cv2.FaceDetectorYN.create(str(YUNET_PATH), "", (320, 320), 0.9, 0.3, 5000)
 
 
 def detect_faces(
-    frame: np.ndarray, detector: cv2.CascadeClassifier | None = None
+    frame: np.ndarray, detector=None
 ) -> list[tuple[int, int, int, int]]:
-    """Detect credible faces after lighting normalization."""
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    gray = cv2.equalizeHist(gray)
-    gray = cv2.GaussianBlur(gray, (3, 3), 0)
-    classifier = detector or _detector()
-    return [
-        tuple(map(int, rect))
-        for rect in classifier.detectMultiScale(
-            gray,
-            scaleFactor=FACE_DETECTION_SCALE_FACTOR,
-            minNeighbors=FACE_DETECTION_MIN_NEIGHBORS,
-            minSize=FACE_DETECTION_MIN_SIZE,
-        )
-    ]
+    """Detect credible faces using YuNet."""
+    detector = detector or _detector()
+    height, width = frame.shape[:2]
+    detector.setInputSize((width, height))
+    _, faces = detector.detect(frame)
+    if faces is None:
+        return []
+    rects = []
+    for face in faces:
+        rects.append(tuple(map(int, face[:4])))
+    return rects
 
 
 def face_sharpness(face: np.ndarray) -> float:
@@ -74,12 +62,6 @@ def _largest_face_rectangles(
 
 
 def _normalize_face_image(face: np.ndarray) -> np.ndarray:
-    """Normalize brightness and contrast to make uploaded photos more consistent."""
-    face = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    face = clahe.apply(face)
-    face = cv2.equalizeHist(face)
-    face = cv2.GaussianBlur(face, (3, 3), 0)
     return face
 
 
@@ -92,12 +74,11 @@ def _load_label_mapping() -> dict[int, str]:
     return {int(value): key for key, value in mapping.items()}
 
 
-def _load_recognizer() -> cv2.face_LBPHFaceRecognizer:
-    recognizer = _recognizer()
-    if not MODEL_PATH.exists():
-        raise FileNotFoundError("Recognition model not found. Train the model first.")
-    recognizer.read(str(MODEL_PATH))
-    return recognizer
+@lru_cache(maxsize=1)
+def _load_sface():
+    if not SFACE_PATH.exists():
+        raise FileNotFoundError("SFace model not found.")
+    return cv2.FaceRecognizerSF.create(str(SFACE_PATH), "")
 
 
 def _face_quality_ok(face: np.ndarray) -> bool:
@@ -106,19 +87,38 @@ def _face_quality_ok(face: np.ndarray) -> bool:
 
 def predict_face(
     face: np.ndarray,
-    recognizer: cv2.face_LBPHFaceRecognizer,
+    recognizer,
     label_mapping: dict[int, str],
     threshold: float,
 ) -> tuple[str | None, float]:
-    label, confidence = recognizer.predict(face)
-    student_id = label_mapping.get(label)
-    if student_id is None or confidence > threshold:
-        return None, confidence
-    return student_id, confidence
+    # Extract feature
+    feature = recognizer.feature(face)
+    
+    # Load embeddings
+    if not MODEL_PATH.exists():
+        return None, 1.0
+    with np.load(str(MODEL_PATH)) as data:
+        labels = data['labels']
+        embeddings = data['embeddings']
+    
+    
+    best_student = None
+    best_distance = 1.0
+    
+    # Compare against all known embeddings
+    for i, emb in enumerate(embeddings):
+        # Cosine distance
+        dist = recognizer.match(feature, np.array([emb]), cv2.FaceRecognizerSF_FR_COSINE)
+        if dist < best_distance:
+            best_distance = dist
+            best_student = label_mapping.get(labels[i])
+            
+    if best_student is None or best_distance > threshold:
+        return None, best_distance
+    return best_student, best_distance
 
 
 def prepare_face(frame: np.ndarray, rectangle: tuple[int, int, int, int]) -> np.ndarray:
-    """Crop, equalize and resize one quality-checked face for LBPH."""
     x, y, width, height = rectangle
     height_limit, width_limit = frame.shape[:2]
     x, y = max(0, x), max(0, y)
@@ -126,28 +126,10 @@ def prepare_face(frame: np.ndarray, rectangle: tuple[int, int, int, int]) -> np.
     if width < 40 or height < 40:
         raise ValueError("Detected face is too small.")
     crop = frame[y : y + height, x : x + width]
-    face = _normalize_face_image(crop)
-    face = cv2.resize(face, FACE_SIZE, interpolation=cv2.INTER_CUBIC)
-    face = cv2.equalizeHist(face)
-    if not _face_quality_ok(face):
-        raise ValueError(
-            "Face image is too blurry; please hold still and improve lighting."
-        )
+    face = cv2.resize(crop, FACE_SIZE, interpolation=cv2.INTER_CUBIC)
     return face
 
 
-def _recognizer() -> cv2.face_LBPHFaceRecognizer:
-    """Return tuned LBPH recognizer. Tune constants in config.py if required."""
-    if not hasattr(cv2, "face"):
-        raise RuntimeError(
-            "OpenCV face module is unavailable. Install opencv-contrib-python."
-        )
-    return cv2.face.LBPHFaceRecognizer_create(
-        radius=LBPH_RADIUS,
-        neighbors=LBPH_NEIGHBORS,
-        grid_x=LBPH_GRID_X,
-        grid_y=LBPH_GRID_Y,
-    )
 
 
 def log_recognition(student_id: str, name: str, confidence: float, result: str) -> None:
@@ -268,75 +250,55 @@ def _validate_dataset() -> tuple[int, int, list[str]]:
 
 
 def train_model() -> tuple[int, int]:
-    """Train from quality-controlled dataset images and return sample/student counts."""
     ensure_runtime_directories()
     database.init_db()
-    faces: list[np.ndarray] = []
-    numeric_labels: list[int] = []
-    labels: dict[str, int] = {}
+    
+    sface = _load_sface()
     detector = _detector()
-    dataset_dirs = sorted(
-        path
-        for path in DATASET_DIR.iterdir()
-        if path.is_dir() and not path.name.startswith(".")
-    )
+    
+    dataset_dirs = [p for p in DATASET_DIR.iterdir() if p.is_dir() and not p.name.startswith(".")]
     if not dataset_dirs:
-        raise ValueError("No dataset folder found. Add face images before training.")
-    sample_count, student_count, missing_students = _validate_dataset()
-    if missing_students:
-        LOGGER.warning(
-            "Datasets found for unregistered students: %s. These folders will be skipped unless the student is registered.",
-            missing_students,
-        )
-    LOGGER.info(
-        "Dataset validation found %s sample(s) in %s student folder(s).",
-        sample_count,
-        student_count,
-    )
+        raise ValueError("No dataset folder found.")
+    
+    faces = []
+    numeric_labels = []
+    labels_dict = {}
+    current_label = 0
+    sample_count = 0
+    
     for student_dir in dataset_dirs:
-        if not database.student_exists(student_dir.name):
-            LOGGER.warning(
-                "Dataset folder %s has no matching registered student. Including it in training, but register the student to enable attendance recording.",
-                student_dir.name,
-            )
-        accepted = 0
-        for image_path in sorted(student_dir.iterdir()):
-            if image_path.suffix.lower() not in IMAGE_EXTENSIONS:
-                LOGGER.debug("Skipping unsupported file %s", image_path)
-                continue
-            if not image_path.is_file():
-                continue
-            image = cv2.imread(str(image_path))
-            if image is None:
-                LOGGER.warning("Skipping unreadable image: %s", image_path)
-                continue
-            rectangles = detect_faces(image, detector)
-            if not rectangles:
-                LOGGER.warning(
-                    "Skipping image without a detectable face: %s", image_path
-                )
-                continue
+        student_id = student_dir.name
+        labels_dict[current_label] = student_id
+        
+        embeddings = []
+        for img_path in sorted(student_dir.iterdir()):
+            if img_path.suffix.lower() not in IMAGE_EXTENSIONS: continue
+            img = cv2.imread(str(img_path))
+            if img is None: continue
+            rects = detect_faces(img, detector)
+            if not rects: continue
             try:
-                face = prepare_face(image, _largest_face_rectangles(rectangles))
-            except ValueError as error:
-                LOGGER.warning("Skipping invalid face image %s: %s", image_path, error)
+                face = prepare_face(img, _largest_face_rectangles(rects))
+            except ValueError:
                 continue
-            if student_dir.name not in labels:
-                labels[student_dir.name] = len(labels)
-            faces.append(face)
-            numeric_labels.append(labels[student_dir.name])
-            accepted += 1
-        LOGGER.info("Accepted %s samples for %s", accepted, student_dir.name)
-    if not faces:
-        raise ValueError(
-            "No usable faces found. Capture clear, well-lit face images first."
-        )
-    recognizer = _recognizer()
-    recognizer.train(faces, np.asarray(numeric_labels, dtype=np.int32))
-    recognizer.save(str(MODEL_PATH))
-    LABELS_PATH.write_text(json.dumps(labels, indent=2), encoding="utf-8")
-    return len(faces), len(labels)
+            
+            emb = sface.feature(face)
+            embeddings.append(emb[0])
+            sample_count += 1
+            
+        if embeddings:
+            avg_emb = np.mean(embeddings, axis=0)
+            faces.append(avg_emb)
+            numeric_labels.append(current_label)
+            current_label += 1
 
+    if not faces:
+        raise ValueError("No usable faces found.")
+
+    LABELS_PATH.write_text(json.dumps(labels_dict, indent=2), encoding="utf-8")
+    np.savez_compressed(str(MODEL_PATH), embeddings=np.array(faces), labels=np.array(numeric_labels))
+    
+    return sample_count, len(dataset_dirs)
 
 def model_available() -> bool:
     return MODEL_PATH.is_file() and LABELS_PATH.is_file()
@@ -348,7 +310,7 @@ def recognize_faces_live(mark_attendance_callback: Callable[[str], bool]) -> Non
         raise FileNotFoundError(
             "No trained model found. Train the recognition model first."
         )
-    recognizer = _load_recognizer()
+    recognizer = _load_sface()
     label_mapping = _load_label_mapping()
     detector = _detector()
     camera = cv2.VideoCapture(CAMERA_INDEX)

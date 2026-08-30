@@ -36,8 +36,8 @@ class DatabaseTests(unittest.TestCase):
                 )
                 database.export_to_csv(report_path, report_date="2026-08-05")
             report = report_path.read_text(encoding="utf-8")
-            self.assertIn("Morning,S-001,Ada Lovelace", report)
-            self.assertIn("Afternoon 1,S-001,Ada Lovelace", report)
+            self.assertIn("8:45to10:45,S-001,Ada Lovelace", report)
+            self.assertIn("13:00to14:00,S-001,Ada Lovelace", report)
             self.assertNotIn("2026-08-06", report)
             # Explicit collection avoids delayed SQLite handle cleanup on Windows.
             gc.collect()

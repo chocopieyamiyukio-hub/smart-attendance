@@ -27,13 +27,13 @@ class ResetDataTests(unittest.TestCase):
             (dataset_dir / "student-001" / "sample.jpg").write_bytes(b"fake-image")
             models_dir.mkdir(parents=True, exist_ok=True)
             database_dir.mkdir(parents=True, exist_ok=True)
-            db_path.write_bytes(b"old-db")
+            import database; database.DATABASE_PATH = db_path; database.init_db()
             model_path.write_text("old-model", encoding="utf-8")
             labels_path.write_text("{}", encoding="utf-8")
 
             with patch("reset_database.DATASET_DIR", dataset_dir), patch(
                 "reset_database.MODELS_DIR", models_dir
-            ), patch("reset_database.DATABASE_PATH", db_path), patch(
+            ), patch(
                 "reset_database.MODEL_PATH", model_path
             ), patch(
                 "reset_database.LABELS_PATH", labels_path

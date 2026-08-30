@@ -13,7 +13,9 @@ DATABASE_DIR = BASE_DIR / "database"
 EXPORTS_DIR = BASE_DIR / "exports"
 LOGS_DIR = BASE_DIR / "logs"
 DATABASE_PATH = DATABASE_DIR / "attendance.db"
-MODEL_PATH = MODELS_DIR / "face_recognizer.yml"
+MODEL_PATH = MODELS_DIR / "embeddings.npz"
+YUNET_PATH = MODELS_DIR / "yunet.onnx"
+SFACE_PATH = MODELS_DIR / "sface.onnx"
 LABELS_PATH = MODELS_DIR / "labels.json"
 SETTINGS_PATH = BASE_DIR / "settings.json"
 RECOGNITION_LOG_PATH = EXPORTS_DIR / "recognition_log.csv"
@@ -21,20 +23,16 @@ LOG_FILE_PATH = LOGS_DIR / "app.log"
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
 CAMERA_INDEX = 0
-FACE_SIZE = (200, 200)
+FACE_SIZE = (112, 112)
 # Face detection tuning for stable live capture and dataset processing.
 FACE_DETECTION_SCALE_FACTOR = 1.08
 FACE_DETECTION_MIN_NEIGHBORS = 5
 FACE_DETECTION_MIN_SIZE = (100, 100)
-# A lower LBPH distance is a closer match. These are safe demonstration
+# A lower cosine distance is a closer match. These are safe demonstration
 # defaults and can be adjusted in settings.json without changing source code.
-RECOGNITION_CONFIDENCE_THRESHOLD = 70.0
+RECOGNITION_CONFIDENCE_THRESHOLD = 0.363
 CAPTURE_SAMPLE_COUNT = 150
 RECOGNITION_COOLDOWN_SECONDS = 15
-LBPH_RADIUS = 2
-LBPH_NEIGHBORS = 8
-LBPH_GRID_X = 8
-LBPH_GRID_Y = 8
 MIN_FACE_SHARPNESS = 55.0
 
 

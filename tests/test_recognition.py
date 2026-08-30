@@ -16,12 +16,14 @@ import recognition
 
 class WholeImageDetector:
     """Test-only detector that treats the synthetic image as one face."""
+    
+    def setInputSize(self, size):
+        pass
 
-    def detectMultiScale(
-        self, image, *args, **kwargs
-    ):  # noqa: N802 - OpenCV API spelling
+    def detect(self, image):
         height, width = image.shape[:2]
-        return np.array([[0, 0, width, height]])
+        # YuNet returns (retval, array of [x, y, w, h, ...])
+        return True, np.array([[0, 0, width, height, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
 
 
 class RecognitionTests(unittest.TestCase):
@@ -34,7 +36,7 @@ class RecognitionTests(unittest.TestCase):
             image = np.full((200, 200, 3), 125, dtype=np.uint8)
             cv2.circle(image, (100, 100), 60, (180, 180, 180), -1)
             self.assertTrue(cv2.imwrite(str(student / "sample.jpg"), image))
-            model = root / "model.yml"
+            model = root / "embeddings.npz"
             labels = root / "labels.json"
             with patch("recognition.DATASET_DIR", dataset), patch(
                 "recognition.MODEL_PATH", model
@@ -45,10 +47,10 @@ class RecognitionTests(unittest.TestCase):
                 self.assertEqual((samples, students), (1, 1))
                 self.assertTrue(model.is_file())
                 self.assertEqual(
-                    json.loads(labels.read_text(encoding="utf-8")), {"S-001": 0}
+                    json.loads(labels.read_text(encoding="utf-8")), {"0": "S-001"}
                 )
-                loaded = recognition._recognizer()
-                loaded.read(str(model))
+                with np.load(str(model)) as data:
+                    self.assertIn("embeddings", data)
 
     def test_add_face_samples_for_student_saves_unique_images(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
