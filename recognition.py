@@ -202,7 +202,19 @@ def add_face_samples_for_student(
         if image is None:
             stats["ignored_images"] += 1
             continue
-        rectangles = detect_faces(image, detector)
+            
+        # Fast downscale for very large images to drastically speed up YuNet detection
+        height, width = image.shape[:2]
+        max_dim = 1280
+        if max(height, width) > max_dim:
+            scale = max_dim / max(height, width)
+            small_image = cv2.resize(image, (int(width * scale), int(height * scale)))
+            small_rects = detect_faces(small_image, detector)
+            rectangles = []
+            for (x, y, w, h) in small_rects:
+                rectangles.append((int(x / scale), int(y / scale), int(w / scale), int(h / scale)))
+        else:
+            rectangles = detect_faces(image, detector)
         if not rectangles:
             stats["ignored_images"] += 1
             continue
