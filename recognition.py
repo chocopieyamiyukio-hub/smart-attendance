@@ -91,31 +91,26 @@ def predict_face(
     label_mapping: dict[int, str],
     threshold: float,
 ) -> tuple[str | None, float]:
-    # Extract feature
     feature = recognizer.feature(face)
     
-    # Load embeddings
     if not MODEL_PATH.exists():
-        return None, 1.0
+        return None, 0.0
     with np.load(str(MODEL_PATH)) as data:
         labels = data['labels']
         embeddings = data['embeddings']
     
-    
     best_student = None
-    best_distance = 1.0
+    best_score = 0.0
     
-    # Compare against all known embeddings
     for i, emb in enumerate(embeddings):
-        # Cosine distance
-        dist = recognizer.match(feature, np.array([emb]), cv2.FaceRecognizerSF_FR_COSINE)
-        if dist < best_distance:
-            best_distance = dist
+        score = recognizer.match(feature, np.array([emb]), cv2.FaceRecognizerSF_FR_COSINE)
+        if score > best_score:
+            best_score = score
             best_student = label_mapping.get(labels[i])
             
-    if best_student is None or best_distance > threshold:
-        return None, best_distance
-    return best_student, best_distance
+    if best_student is None or best_score < threshold:
+        return None, best_score
+    return best_student, best_score
 
 
 def prepare_face(frame: np.ndarray, rectangle: tuple[int, int, int, int]) -> np.ndarray:

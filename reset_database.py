@@ -26,7 +26,7 @@ def reset_all_data() -> None:
                 try:
                     if child.is_dir():
                         shutil.rmtree(child)
-                    elif child.is_file():
+                    elif child.is_file() and child.suffix != ".onnx":
                         child.unlink()
                 except PermissionError:
                     continue
