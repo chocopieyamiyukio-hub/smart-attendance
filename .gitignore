@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.py[cod]
+database/*.db
+dataset/
+models/
+exports/*.csv
