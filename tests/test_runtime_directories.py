@@ -20,12 +20,15 @@ class RuntimeDirectoriesTests(unittest.TestCase):
             exports_dir = base / "exports"
             logs_dir = base / "logs"
 
-            with patch("config.BASE_DIR", base), \
-                 patch("config.DATASET_DIR", dataset_dir), \
-                 patch("config.MODELS_DIR", models_dir), \
-                 patch("config.DATABASE_DIR", database_dir), \
-                 patch("config.EXPORTS_DIR", exports_dir), \
-                 patch("config.LOGS_DIR", logs_dir):
+            with patch("config.BASE_DIR", base), patch(
+                "config.DATASET_DIR", dataset_dir
+            ), patch("config.MODELS_DIR", models_dir), patch(
+                "config.DATABASE_DIR", database_dir
+            ), patch(
+                "config.EXPORTS_DIR", exports_dir
+            ), patch(
+                "config.LOGS_DIR", logs_dir
+            ):
                 config.ensure_runtime_directories()
 
             self.assertTrue(dataset_dir.exists())

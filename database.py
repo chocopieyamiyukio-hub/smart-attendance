@@ -5,8 +5,9 @@ from __future__ import annotations
 import csv
 import gc
 import sqlite3
-from contextlib import contextmanager, closing
-from datetime import datetime, time as clock_time
+from contextlib import closing, contextmanager
+from datetime import datetime
+from datetime import time as clock_time
 from pathlib import Path
 
 from config import DATABASE_PATH, EXPORTS_DIR, ensure_runtime_directories
@@ -72,16 +73,13 @@ def close_all_connections() -> None:
 def init_db() -> None:
     """Initialise the database tables if they do not exist."""
     with _managed_connection() as conn:
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS Students (
                 student_id TEXT PRIMARY KEY,
                 name TEXT NOT NULL
             )
-            """
-        )
-        conn.execute(
-            """
+            """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS Attendance (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 student_id TEXT NOT NULL,
@@ -90,11 +88,12 @@ def init_db() -> None:
                 session TEXT NOT NULL DEFAULT 'Legacy',
                 FOREIGN KEY(student_id) REFERENCES Students(student_id)
             )
-            """
-        )
+            """)
         columns = {row[1] for row in conn.execute("PRAGMA table_info(Attendance)")}
         if "session" not in columns:
-            conn.execute("ALTER TABLE Attendance ADD COLUMN session TEXT NOT NULL DEFAULT 'Legacy'")
+            conn.execute(
+                "ALTER TABLE Attendance ADD COLUMN session TEXT NOT NULL DEFAULT 'Legacy'"
+            )
         # Replace the old daily-only key so the same student can attend a
         # later scheduled session, but never twice in the same session.
         conn.execute("DROP INDEX IF EXISTS idx_daily_attendance")
@@ -120,32 +119,58 @@ def add_student(student_id: str, name: str) -> None:
 
 def update_student(old_student_id: str, student_id: str, name: str) -> None:
     """Update a student's ID and name, preserving all attendance history."""
-    old_id, new_id, cleaned_name = old_student_id.strip(), student_id.strip(), name.strip()
+    old_id, new_id, cleaned_name = (
+        old_student_id.strip(),
+        student_id.strip(),
+        name.strip(),
+    )
     if not old_id or not new_id or not cleaned_name:
         raise ValueError("Student ID and name are required.")
     with _managed_connection() as conn:
-        if conn.execute("SELECT 1 FROM Students WHERE student_id = ?", (old_id,)).fetchone() is None:
+        if (
+            conn.execute(
+                "SELECT 1 FROM Students WHERE student_id = ?", (old_id,)
+            ).fetchone()
+            is None
+        ):
             raise ValueError("The selected student no longer exists.")
-        if old_id != new_id and conn.execute(
-            "SELECT 1 FROM Students WHERE student_id = ?", (new_id,)
-        ).fetchone() is not None:
+        if (
+            old_id != new_id
+            and conn.execute(
+                "SELECT 1 FROM Students WHERE student_id = ?", (new_id,)
+            ).fetchone()
+            is not None
+        ):
             raise ValueError("That Student ID is already registered.")
         if old_id != new_id:
             # Add the replacement first so the attendance foreign key remains
             # valid while its references are moved inside this transaction.
-            conn.execute("INSERT INTO Students (student_id, name) VALUES (?, ?)", (new_id, cleaned_name))
-            conn.execute("UPDATE Attendance SET student_id = ? WHERE student_id = ?", (new_id, old_id))
+            conn.execute(
+                "INSERT INTO Students (student_id, name) VALUES (?, ?)",
+                (new_id, cleaned_name),
+            )
+            conn.execute(
+                "UPDATE Attendance SET student_id = ? WHERE student_id = ?",
+                (new_id, old_id),
+            )
             conn.execute("DELETE FROM Students WHERE student_id = ?", (old_id,))
         else:
-            conn.execute("UPDATE Students SET name = ? WHERE student_id = ?", (cleaned_name, old_id))
+            conn.execute(
+                "UPDATE Students SET name = ? WHERE student_id = ?",
+                (cleaned_name, old_id),
+            )
 
 
 def delete_student(student_id: str) -> bool:
     """Delete one student and every attendance record belonging to them."""
     cleaned_student_id = student_id.strip()
     with _managed_connection() as conn:
-        conn.execute("DELETE FROM Attendance WHERE student_id = ?", (cleaned_student_id,))
-        cursor = conn.execute("DELETE FROM Students WHERE student_id = ?", (cleaned_student_id,))
+        conn.execute(
+            "DELETE FROM Attendance WHERE student_id = ?", (cleaned_student_id,)
+        )
+        cursor = conn.execute(
+            "DELETE FROM Students WHERE student_id = ?", (cleaned_student_id,)
+        )
         return cursor.rowcount == 1
 
 
@@ -158,10 +183,13 @@ def delete_all_students_and_attendance() -> None:
 
 def student_exists(student_id: str) -> bool:
     with _managed_connection() as conn:
-        return conn.execute(
-            "SELECT 1 FROM Students WHERE student_id = ?",
-            (student_id.strip(),),
-        ).fetchone() is not None
+        return (
+            conn.execute(
+                "SELECT 1 FROM Students WHERE student_id = ?",
+                (student_id.strip(),),
+            ).fetchone()
+            is not None
+        )
 
 
 def get_student(student_id: str) -> tuple[str, str] | None:
@@ -186,8 +214,13 @@ def dashboard_summary() -> dict[str, int]:
     with _managed_connection() as conn:
         return {
             "students": conn.execute("SELECT COUNT(*) FROM Students").fetchone()[0],
-            "today": conn.execute("SELECT COUNT(DISTINCT student_id) FROM Attendance WHERE date = ?", (today,)).fetchone()[0],
-            "records": conn.execute("SELECT COUNT(*) FROM Attendance WHERE date = ?", (today,)).fetchone()[0],
+            "today": conn.execute(
+                "SELECT COUNT(DISTINCT student_id) FROM Attendance WHERE date = ?",
+                (today,),
+            ).fetchone()[0],
+            "records": conn.execute(
+                "SELECT COUNT(*) FROM Attendance WHERE date = ?", (today,)
+            ).fetchone()[0],
         }
 
 
@@ -236,7 +269,9 @@ def mark_attendance(student_id: str, at: datetime | None = None) -> bool:
         return inserted == 1
 
 
-def export_to_csv(output_path: Path | None = None, report_date: str | None = None) -> Path:
+def export_to_csv(
+    output_path: Path | None = None, report_date: str | None = None
+) -> Path:
     """Export only one day's attendance; today is used unless specified."""
     ensure_runtime_directories()
     destination = output_path or EXPORTS_DIR / "attendance_report.csv"

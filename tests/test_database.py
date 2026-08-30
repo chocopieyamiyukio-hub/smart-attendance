@@ -17,13 +17,23 @@ class DatabaseTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             db_path = Path(directory) / "attendance.db"
             report_path = Path(directory) / "report.csv"
-            with patch("database.DATABASE_PATH", db_path), patch("database.EXPORTS_DIR", Path(directory)):
+            with patch("database.DATABASE_PATH", db_path), patch(
+                "database.EXPORTS_DIR", Path(directory)
+            ):
                 database.init_db()
                 database.add_student("S-001", "Ada Lovelace")
-                self.assertTrue(database.mark_attendance("S-001", datetime(2026, 8, 5, 9, 0)))
-                self.assertFalse(database.mark_attendance("S-001", datetime(2026, 8, 5, 9, 30)))
-                self.assertTrue(database.mark_attendance("S-001", datetime(2026, 8, 5, 13, 30)))
-                self.assertTrue(database.mark_attendance("S-001", datetime(2026, 8, 6, 9, 0)))
+                self.assertTrue(
+                    database.mark_attendance("S-001", datetime(2026, 8, 5, 9, 0))
+                )
+                self.assertFalse(
+                    database.mark_attendance("S-001", datetime(2026, 8, 5, 9, 30))
+                )
+                self.assertTrue(
+                    database.mark_attendance("S-001", datetime(2026, 8, 5, 13, 30))
+                )
+                self.assertTrue(
+                    database.mark_attendance("S-001", datetime(2026, 8, 6, 9, 0))
+                )
                 database.export_to_csv(report_path, report_date="2026-08-05")
             report = report_path.read_text(encoding="utf-8")
             self.assertIn("Morning,S-001,Ada Lovelace", report)
@@ -40,7 +50,9 @@ class DatabaseTests(unittest.TestCase):
                 database.add_student("S-001", "Ada")
                 database.mark_attendance("S-001", datetime(2026, 8, 5, 9, 0))
                 database.update_student("S-001", "S-002", "Ada Lovelace")
-                self.assertEqual(database.get_student("S-002"), ("S-002", "Ada Lovelace"))
+                self.assertEqual(
+                    database.get_student("S-002"), ("S-002", "Ada Lovelace")
+                )
                 self.assertIsNone(database.get_student("S-001"))
                 self.assertTrue(database.delete_student("S-002"))
                 self.assertEqual(database.dashboard_summary()["records"], 0)

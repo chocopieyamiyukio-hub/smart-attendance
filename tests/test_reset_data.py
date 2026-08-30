@@ -31,12 +31,15 @@ class ResetDataTests(unittest.TestCase):
             model_path.write_text("old-model", encoding="utf-8")
             labels_path.write_text("{}", encoding="utf-8")
 
-            with patch("reset_database.DATASET_DIR", dataset_dir), \
-                 patch("reset_database.MODELS_DIR", models_dir), \
-                 patch("reset_database.DATABASE_PATH", db_path), \
-                 patch("reset_database.MODEL_PATH", model_path), \
-                 patch("reset_database.LABELS_PATH", labels_path), \
-                 patch("database.DATABASE_PATH", db_path):
+            with patch("reset_database.DATASET_DIR", dataset_dir), patch(
+                "reset_database.MODELS_DIR", models_dir
+            ), patch("reset_database.DATABASE_PATH", db_path), patch(
+                "reset_database.MODEL_PATH", model_path
+            ), patch(
+                "reset_database.LABELS_PATH", labels_path
+            ), patch(
+                "database.DATABASE_PATH", db_path
+            ):
                 reset_database.reset_all_data()
 
             self.assertTrue(dataset_dir.exists())

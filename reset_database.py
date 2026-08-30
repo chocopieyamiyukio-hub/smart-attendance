@@ -52,7 +52,10 @@ def delete_student_data(student_id: str) -> bool:
 def move_student_dataset(old_student_id: str, new_student_id: str) -> None:
     """Keep face samples aligned with an edited student ID and invalidate LBPH."""
     if old_student_id != new_student_id:
-        old_folder, new_folder = DATASET_DIR / old_student_id, DATASET_DIR / new_student_id
+        old_folder, new_folder = (
+            DATASET_DIR / old_student_id,
+            DATASET_DIR / new_student_id,
+        )
         if old_folder.exists():
             if new_folder.exists():
                 raise ValueError("A dataset folder already exists for that Student ID.")

@@ -6,7 +6,6 @@ import json
 import logging
 from pathlib import Path
 
-
 BASE_DIR = Path(__file__).resolve().parent
 DATASET_DIR = BASE_DIR / "dataset"
 MODELS_DIR = BASE_DIR / "models"
@@ -90,7 +89,9 @@ def get_settings() -> dict:
 def save_settings(settings: dict) -> None:
     """Persist non-secret user preferences."""
     # App passwords are intentionally never written to disk.
-    safe_settings = {key: value for key, value in settings.items() if key != "smtp_password"}
+    safe_settings = {
+        key: value for key, value in settings.items() if key != "smtp_password"
+    }
     ensure_runtime_directories()
     SETTINGS_PATH.write_text(json.dumps(safe_settings, indent=2), encoding="utf-8")
 
@@ -99,7 +100,18 @@ def recognition_settings() -> dict:
     """Return validated, user-editable recognition tuning values."""
     settings = get_settings()
     return {
-        "threshold": float(settings.get("confidence_threshold", RECOGNITION_CONFIDENCE_THRESHOLD)),
-        "samples": max(10, int(settings.get("capture_sample_count", CAPTURE_SAMPLE_COUNT))),
-        "cooldown": max(1, int(settings.get("recognition_cooldown_seconds", RECOGNITION_COOLDOWN_SECONDS))),
+        "threshold": float(
+            settings.get("confidence_threshold", RECOGNITION_CONFIDENCE_THRESHOLD)
+        ),
+        "samples": max(
+            10, int(settings.get("capture_sample_count", CAPTURE_SAMPLE_COUNT))
+        ),
+        "cooldown": max(
+            1,
+            int(
+                settings.get(
+                    "recognition_cooldown_seconds", RECOGNITION_COOLDOWN_SECONDS
+                )
+            ),
+        ),
     }
